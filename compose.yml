@@ -1,0 +1,47 @@
+services:
+  catalog-api-db:
+    container_name: "catalog-api-db"
+    image: postgres:18.4
+    environment:
+      - "POSTGRES_USER"
+      - "POSTGRES_PASSWORD"
+      - "POSTGRES_DB"
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-volume:/var/lib/postgresql
+    networks:
+      - global-network
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d
+      ${POSTGRES_DB}'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+    profiles:
+      - app
+      - db-only
+  application:
+    container_name: "catalog-api"
+    image: "kacperjn:catalog-api"
+    build: .
+    pull_policy: build
+    environment:
+      - "DB_USER"
+      - "DB_PASSWORD"
+      - "DB_URL"
+    networks:
+      - global-network
+    ports:
+      - "8080:8080"
+    depends_on:
+      catalog-api-db:
+        condition: service_healthy
+    profiles:
+      - app
+
+volumes:
+  db-volume:
+
+networks:
+  global-network:

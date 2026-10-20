@@ -1,3 +1,26 @@
 spring:
   application:
     name: product_catalog_api
+
+  datasource:
+    password: ${DB_PASSWORD:admin}
+    username: ${DB_USER:admin}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/catalog-api-db}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        generate_statistics: true
+        jdbc:
+          batch_size: 50
+        order_updates: true
+        insert_updates: true
+        show_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:migration/scripts
+
