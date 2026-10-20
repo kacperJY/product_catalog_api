@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.jdbc.JdbcTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,6 +25,9 @@ public class BaseIT {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    protected CacheManager cacheManager;
+
     @ServiceConnection
     private static final PostgreSQLContainer postgreSQLContainer;
 
@@ -36,5 +40,6 @@ public class BaseIT {
     @AfterEach
     public void cleanDatabase(){
         JdbcTestUtils.deleteFromTables(jdbcTemplate,"products");
+        cacheManager.getCacheNames().forEach(cacheName -> cacheManager.getCache(cacheName).clear());
     }
 }

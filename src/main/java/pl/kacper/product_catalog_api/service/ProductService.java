@@ -1,5 +1,7 @@
 package pl.kacper.product_catalog_api.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,7 +66,8 @@ public class ProductService {
     }
 
     @Transactional
-    public void updateProduct(Long productId, ProductRequestDto productRequestDto){
+    @CachePut(cacheNames = "products", key = "#productId")
+    public ProductResponseDto updateProduct(Long productId, ProductRequestDto productRequestDto){
         ProductEntity productEntity = productEntityRepository.findById(productId)
                 .orElseThrow(() -> new NoSuchDbRecordException("There is no product with ID=" + productId));
 
@@ -72,9 +75,18 @@ public class ProductService {
         productEntity.setDescription(productRequestDto.description());
         productEntity.setPrice(productRequestDto.price());
         productEntity.setStockQuantity(productRequestDto.stockQuantity());
+
+        return new ProductResponseDto(
+                productEntity.getProductId(),
+                productRequestDto.name(),
+                productRequestDto.description(),
+                productRequestDto.price(),
+                productRequestDto.stockQuantity()
+        );
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "products", allEntries = false, key = "#productId")
     public void deleteProduct(Long productId){
         ProductEntity productEntity = productEntityRepository.findById(productId)
                 .orElseThrow(() -> new NoSuchDbRecordException("There is no product with ID=" + productId));
