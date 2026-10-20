@@ -1,5 +1,6 @@
 package pl.kacper.product_catalog_api.service;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.kacper.product_catalog_api.dto.ProductRequestDto;
@@ -15,7 +16,7 @@ public class ProductService {
 
     private final ProductEntityRepository productEntityRepository;
 
-    public ProductService(ProductEntityRepository productEntityRepository) {
+    public ProductService(ProductEntityRepository productEntityRepository ) {
         this.productEntityRepository = productEntityRepository;
     }
 
@@ -35,8 +36,8 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public ProductResponseDto getProduct(Long productId) {
-
+    @Cacheable(cacheNames = "products", key = "#productId", sync = true)
+    public ProductResponseDto getProduct(Long productId){
         ProductEntity productEntity = productEntityRepository.findById(productId)
                 .orElseThrow(() -> new NoSuchDbRecordException("There is no product with ID=" + productId));
 

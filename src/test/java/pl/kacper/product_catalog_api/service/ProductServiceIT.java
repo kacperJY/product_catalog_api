@@ -8,6 +8,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import pl.kacper.product_catalog_api.BaseIT;
 import pl.kacper.product_catalog_api.dto.ProductRequestDto;
+import pl.kacper.product_catalog_api.dto.ProductResponseDto;
 import pl.kacper.product_catalog_api.model.ProductEntity;
 import pl.kacper.product_catalog_api.repository.ProductEntityRepository;
 
@@ -124,6 +125,59 @@ public class ProductServiceIT extends BaseIT {
         Assertions.assertThat(product.getDescription()).isEqualTo(updatedProductRequestDto.description());
         Assertions.assertThat(product.getPrice()).isEqualByComparingTo(updatedProductRequestDto.price());
         Assertions.assertThat(product.getStockQuantity()).isEqualTo(updatedProductRequestDto.stockQuantity());
+    }
+
+    @Test
+    public void shouldReturnProductFromCacheIfExists() throws Exception{
+        ProductRequestDto productRequestDto = new ProductRequestDto(
+                "CocaCola",
+                "CocaCola drink 2L",
+                new BigDecimal("9"),
+                1450
+        );
+
+        Long productId = productService.addProduct(productRequestDto); // TX
+
+        // Fetch from database - FIRST TIME
+        String productResponseFirst = mockMvc.perform(
+                        MockMvcRequestBuilders.get("/api/products/%s".formatted(productId))
+                                .accept(MediaType.APPLICATION_JSON)
+                                .contentType(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Optional<ProductEntity> byId = productEntityRepository.findById(productId);
+        Assertions.assertThat(byId).isNotEmpty();
+        ProductEntity productEntity = byId.get();
+
+        // VALIDATE RESPONSE
+        ProductResponseDto productResponseDto = objectMapper.readValue(productResponseFirst, ProductResponseDto.class);
+        Assertions.assertThat(productEntity.getProductId()).isEqualTo(productResponseDto.productId());
+        Assertions.assertThat(productEntity.getName()).isEqualTo(productResponseDto.name());
+        Assertions.assertThat(productEntity.getDescription()).isEqualTo(productResponseDto.description());
+        Assertions.assertThat(productEntity.getPrice()).isEqualByComparingTo(productResponseDto.price());
+        Assertions.assertThat(productEntity.getStockQuantity()).isEqualTo(productResponseDto.stockQuantity());
+
+        productEntityRepository.deleteById(productId);
+
+        Optional<ProductEntity> byIdAfterDelete = productEntityRepository.findById(productId);
+        Assertions.assertThat(byIdAfterDelete).isEmpty();
+
+
+        String productResponseSecond = mockMvc.perform(
+                        MockMvcRequestBuilders.get("/api/products/%s".formatted(productId))
+                                .accept(MediaType.APPLICATION_JSON)
+                                .contentType(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        ProductResponseDto productResponseDtoFromCache = objectMapper.readValue(productResponseSecond, ProductResponseDto.class);
+        Assertions.assertThat(productEntity.getProductId()).isEqualTo(productResponseDtoFromCache.productId());
+        Assertions.assertThat(productEntity.getName()).isEqualTo(productResponseDtoFromCache.name());
+        Assertions.assertThat(productEntity.getDescription()).isEqualTo(productResponseDtoFromCache.description());
+        Assertions.assertThat(productEntity.getPrice()).isEqualByComparingTo(productResponseDtoFromCache.price());
+        Assertions.assertThat(productEntity.getStockQuantity()).isEqualTo(productResponseDtoFromCache.stockQuantity());
     }
 
 }

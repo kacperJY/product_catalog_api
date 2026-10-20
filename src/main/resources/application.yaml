@@ -24,3 +24,5 @@ spring:
     enabled: true
     locations: classpath:migration/scripts
 
+cache:
+  max-size: 50
